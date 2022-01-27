@@ -9,7 +9,8 @@ type JsonAssertException(expected: obj, actual: obj, messages: string list) =
     member self.DiffMessages = messages
 
 type JsonDiffConfig = {
-    allowAdditionalProperties: bool
+    allowAdditionalProperties: bool;
+    ignoreValueDiffAtPath: string
 }
 
 module JsonAssert =
@@ -23,9 +24,11 @@ module JsonAssert =
         
     let EqualOverrideDefault (expectedJsonString: string, actualJsonString: string, diffConfig : JsonDiffConfig) : unit =
         let checkDiffConfig (diffConfig : JsonDiffConfig) (diff : Diff) =
-            if diffConfig.allowAdditionalProperties then
-                match diff with
-                | ObjectDiff (diffPoint, mismatches) ->
+            match diff with
+            | ValueDiff valueDiff ->
+                if diffConfig.ignoreValueDiffAtPath = valueDiff.Path then None else Some diff
+            | ObjectDiff (diffPoint, mismatches) ->
+                if diffConfig.allowAdditionalProperties then
                     // Left JSON <-> Actual JSON (Left-only properties are additional properties.)
                     // Right JSON <-> Expected JSON (Right-only properties are missing properties.)
                     let keepRightOnly =
@@ -36,9 +39,8 @@ module JsonAssert =
                     match remaining with
                     | [] -> None
                     | _ -> Some <| ObjectDiff (diffPoint, remaining)
-                | _ -> Some diff
-            else
-                Some diff
+                else Some diff
+            | _ -> Some diff
         let diffs : Diff list = JsonStrings.diff actualJsonString expectedJsonString
         let diffs' = diffs |> List.choose (checkDiffConfig diffConfig)
         let messages : string list = diffs' |> List.map Message.toAssertMessage

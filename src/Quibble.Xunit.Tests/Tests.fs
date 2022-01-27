@@ -90,9 +90,30 @@ let ``Allowing additional properties with config override.`` () =
     let expectedJsonString = """{ "item": "widget" }"""
     let actualJsonString = """{ "item": "widget", "price": 12.20 }"""
     let diffConfig = {
-        allowAdditionalProperties = true
+        allowAdditionalProperties = true;
+        ignoreValueDiffAtPath = ""
     }
     JsonAssert.EqualOverrideDefault(expectedJsonString, actualJsonString, diffConfig)
+
+[<Fact>]
+let ``Allowing property with different value.`` () =
+    let expectedJsonString = """{ "item": "widget", "price": 0.20  }"""
+    let actualJsonString = """{ "item": "widget", "price": 12.20 }"""
+    let diffConfig = {
+        allowAdditionalProperties = false;
+        ignoreValueDiffAtPath = "$.price"
+    }
+    JsonAssert.EqualOverrideDefault(expectedJsonString, actualJsonString, diffConfig)
+
+[<Fact>]
+let ``Allowing property with different value with allow=true.`` () =
+    let expectedJsonString = """{ "item": "widget", "price": 0.20  }"""
+    let actualJsonString = """{ "item": "widget", "price": 12.20 }"""
+    let diffConfig = {
+        allowAdditionalProperties = true;
+        ignoreValueDiffAtPath = ""
+    }
+    Assert.Throws<JsonAssertException>(fun () -> JsonAssert.EqualOverrideDefault(expectedJsonString, actualJsonString, diffConfig))
 
 [<Fact>]
 let ``Books example``() =
